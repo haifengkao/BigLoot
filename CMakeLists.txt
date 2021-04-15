@@ -298,6 +298,8 @@ set (LIBLOOT_HEADERS "${CMAKE_SOURCE_DIR}/include/loot/api.h"
                       "${CMAKE_SOURCE_DIR}/src/api/helpers/logging.h"
                       "${CMAKE_SOURCE_DIR}/src/api/helpers/text.h")
 
+set (LOOT_APP_SRC "${CMAKE_SOURCE_DIR}/src/app/main.cpp")
+
 set (LOOT_TESTS_SRC "${CMAKE_SOURCE_DIR}/src/tests/api/internals/main.cpp")
 
 set (LOOT_TESTS_HEADERS "${CMAKE_SOURCE_DIR}/src/tests/api/internals/game/game_test.h"
@@ -433,6 +435,11 @@ ENDIF ()
 add_library          (loot ${LIBLOOT_SRC} ${LIBLOOT_HEADERS})
 add_dependencies     (loot esplugin libgit2 libloadorder loot-condition-interpreter spdlog yaml-cpp)
 target_link_libraries(loot ${LIBGIT2_LIBRARIES} ${ESPLUGIN_LIBRARIES} ${LIBLOADORDER_LIBRARIES} ${LOOT_LIBS} ${LCI_LIBRARIES} ${YAML_CPP_LIBRARIES} ${ICU_LIBRARIES})
+
+# Build Standalone app
+add_executable       (lootapp ${LOOT_APP_SRC} ${LIBLOOT_SRC} ${LIBLOOT_HEADERS})
+add_dependencies     (lootapp esplugin libgit2 libloadorder loot-condition-interpreter spdlog yaml-cpp)
+target_link_libraries(lootapp ${LIBGIT2_LIBRARIES} ${ESPLUGIN_LIBRARIES} ${LIBLOADORDER_LIBRARIES} ${LOOT_LIBS} ${LCI_LIBRARIES} ${YAML_CPP_LIBRARIES} ${ICU_LIBRARIES})
 
 # Build API tests.
 # add_executable       (libloot_tests ${LIBLOOT_TESTS_SRC} ${LIBLOOT_TESTS_HEADERS})
