@@ -29,6 +29,8 @@
 
 #ifdef _WIN32
 #include "windows.h"
+#elif defined(__APPLE__)
+// OSX doesn't have uchar
 #else
 #include <unicode/uchar.h>
 #include <unicode/unistr.h>
@@ -160,6 +162,9 @@ int CompareFilenames(const std::string& lhs, const std::string& rhs) {
       throw std::invalid_argument(
           "One of the filenames to compare was invalid.");
   }
+#elif defined(__APPLE__)
+    // OSX doesn't have uchar
+    return lhs.compare(rhs);
 #else
   auto unicodeLhs = UnicodeString::fromUTF8(lhs);
   auto unicodeRhs = UnicodeString::fromUTF8(rhs);
@@ -172,6 +177,9 @@ std::string NormalizeFilename(const std::string& filename) {
   auto wideString = ToWinWide(filename);
   CharUpperBuffW(&wideString[0], wideString.length());
   return FromWinWide(wideString);
+#elif defined(__APPLE__)
+  // OSX doesn't have uchar
+    return filename;
 #else
   std::string normalizedFilename;
   UnicodeString::fromUTF8(filename)

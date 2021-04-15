@@ -582,7 +582,7 @@ std::string GitHelper::GetHeadCommitDate() {
   }
 
   Call(git_commit_lookup(&data_.commit, data_.repo, commit_id));
-  git_time_t time = git_commit_time(data_.commit);
+  std::time_t time = git_commit_time(data_.commit);
 
   git_commit_free(data_.commit);
   data_.commit = nullptr;
