@@ -1,7 +1,9 @@
 cmake_minimum_required (VERSION 2.8.12.1)
 cmake_policy(SET CMP0015 NEW)
-project (libloot)
+project (BigLoot)
 include(ExternalProject)
+
+set (Active_Scheme release)
 
 option(BUILD_SHARED_LIBS "Build a shared library" ON)
 option(MSVC_STATIC_RUNTIME "Build with static runtime libs (/MT)" OFF)
@@ -55,13 +57,26 @@ IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
     ELSE ()
         set(RUST_TARGET x86_64-pc-windows-msvc)
     ENDIF ()
+    set(USE_BUNDLED_ZLIB )
+    set(SYSTEM_NAME "Windows")
+ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    set(RUST_TARGET x86_64-apple-darwin)
+    set(USE_BUNDLED_ZLIB -DUSE_BUNDLED_ZLIB=ON) # I cannot find zlib on mac osx
+    set(SYSTEM_NAME "Darwin")
 ELSE ()
     set(RUST_TARGET x86_64-unknown-linux-gnu)
+    set(USE_BUNDLED_ZLIB )
+    set(SYSTEM_NAME "Other")
 ENDIF ()
 
 find_package(Boost REQUIRED)
+IF (Active_Scheme MATCHES "debug")
+    set(Rust_Scheme "") # default cargo build command is debug
+ELSE ()
+    set(Rust_Scheme "--release")
+ENDIF ()
 
-if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+if (SYSTEM_NAME MATCHES "Other")
     find_package(ICU REQUIRED COMPONENTS uc)
     include_directories($ICU_INCLUDE_DIRS)
     link_directories($ICU_LIBRARY_DIRS)
@@ -81,13 +96,13 @@ ExternalProject_Add(esplugin
                     URL "https://github.com/Ortham/esplugin/archive/3.3.1.tar.gz"
                     CONFIGURE_COMMAND ""
                     BUILD_IN_SOURCE 1
-                    BUILD_COMMAND cargo build --release --manifest-path ffi/Cargo.toml --target ${RUST_TARGET} &&
+                    BUILD_COMMAND cargo build --${Rust_Scheme} --manifest-path ffi/Cargo.toml --target ${RUST_TARGET} &&
                         cbindgen ffi/ -o ffi/include/esplugin.hpp
                     INSTALL_COMMAND "")
 ExternalProject_Get_Property(esplugin SOURCE_DIR)
 set (ESPLUGIN_INCLUDE_DIRS "${SOURCE_DIR}/ffi/include")
-set (ESPLUGIN_LIBRARIES "${SOURCE_DIR}/target/${RUST_TARGET}/release/${CMAKE_STATIC_LIBRARY_PREFIX}esplugin_ffi${CMAKE_STATIC_LIBRARY_SUFFIX}")
-IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+set (ESPLUGIN_LIBRARIES "${SOURCE_DIR}/target/${RUST_TARGET}/${Active_Scheme}/${CMAKE_STATIC_LIBRARY_PREFIX}esplugin_ffi${CMAKE_STATIC_LIBRARY_SUFFIX}")
+IF (SYSTEM_NAME MATCHES "Windows")
     set (ESPLUGIN_LIBRARIES ${ESPLUGIN_LIBRARIES} Userenv)
 ELSE ()
     set (ESPLUGIN_LIBRARIES ${ESPLUGIN_LIBRARIES} dl)
@@ -96,7 +111,7 @@ ENDIF ()
 ExternalProject_Add(libgit2
                     PREFIX "external"
                     URL "https://github.com/libgit2/libgit2/archive/v1.1.0.tar.gz"
-                    CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DBUILD_CLAR=OFF -DUSE_SSH=OFF -DSTATIC_CRT=${MSVC_STATIC_RUNTIME} -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE} -DREGEX_BACKEND=builtin
+                    CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DBUILD_CLAR=OFF -DUSE_SSH=OFF -DSTATIC_CRT=${MSVC_STATIC_RUNTIME} -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE} -DREGEX_BACKEND=builtin ${USE_BUNDLED_ZLIB}
                     BUILD_COMMAND ${CMAKE_COMMAND} --build . --target git2 --config $(CONFIGURATION)
                     INSTALL_COMMAND "")
 ExternalProject_Get_Property(libgit2 SOURCE_DIR BINARY_DIR)
@@ -114,7 +129,7 @@ ExternalProject_Add(libloadorder
 ExternalProject_Get_Property(libloadorder SOURCE_DIR)
 set(LIBLOADORDER_INCLUDE_DIRS "${SOURCE_DIR}/ffi/include")
 set(LIBLOADORDER_LIBRARIES "${SOURCE_DIR}/target/${RUST_TARGET}/release/${CMAKE_STATIC_LIBRARY_PREFIX}loadorder_ffi${CMAKE_STATIC_LIBRARY_SUFFIX}")
-IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+IF (SYSTEM_NAME MATCHES "Windows")
     set (LIBLOADORDER_LIBRARIES ${LIBLOADORDER_LIBRARIES} Userenv)
 ELSE ()
     set (LIBLOADORDER_LIBRARIES ${LIBLOADORDER_LIBRARIES} dl)
@@ -131,7 +146,7 @@ ExternalProject_Add(loot-condition-interpreter
 ExternalProject_Get_Property(loot-condition-interpreter SOURCE_DIR)
 set (LCI_INCLUDE_DIRS "${SOURCE_DIR}/ffi/include")
 set (LCI_LIBRARIES "${SOURCE_DIR}/target/${RUST_TARGET}/release/${CMAKE_STATIC_LIBRARY_PREFIX}loot_condition_interpreter_ffi${CMAKE_STATIC_LIBRARY_SUFFIX}")
-IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+IF (SYSTEM_NAME MATCHES "Windows")
     set (LCI_LIBRARIES ${LCI_LIBRARIES} Userenv)
 ELSE ()
     set (LCI_LIBRARIES ${LCI_LIBRARIES} dl)
@@ -177,7 +192,11 @@ if (MSVC)
     endif()
 endif()
 
-set(YAML_CPP_LIBRARY_SUFFIX "${LIB_SUFFIX}${YAML_CPP_LIBRARY_SUFFIX}$<$<CONFIG:Debug>:d>${CMAKE_STATIC_LIBRARY_SUFFIX}")
+IF(SYSTEM_NAME MATCHES "Darwin")
+    set(YAML_CPP_LIBRARY_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+ELSE ()
+    set(YAML_CPP_LIBRARY_SUFFIX "${LIB_SUFFIX}${YAML_CPP_LIBRARY_SUFFIX}$<$<CONFIG:Debug>:d>${CMAKE_STATIC_LIBRARY_SUFFIX}")
+ENDIF ()
 set(YAML_CPP_INCLUDE_DIRS "${SOURCE_DIR}/include")
 set(YAML_CPP_LIBRARIES "${BINARY_DIR}/${CMAKE_CFG_INTDIR}/libyaml-cpp${YAML_CPP_LIBRARY_SUFFIX}")
 
@@ -213,6 +232,8 @@ set (LIBLOOT_SRC "${CMAKE_BINARY_DIR}/generated/loot_version.cpp"
                   "${CMAKE_SOURCE_DIR}/src/api/sorting/plugin_sort.cpp"
                   "${CMAKE_SOURCE_DIR}/src/api/sorting/plugin_graph.cpp"
                   "${CMAKE_SOURCE_DIR}/src/api/sorting/plugin_sorting_data.cpp"
+                #   "${CMAKE_SOURCE_DIR}/src/api/sorting/EdgeProvider.cpp"
+                #   "${CMAKE_SOURCE_DIR}/src/api/sorting/EdgeItem.cpp"
                   "${CMAKE_SOURCE_DIR}/src/api/helpers/crc.cpp"
                   "${CMAKE_SOURCE_DIR}/src/api/helpers/git_helper.cpp"
                   "${CMAKE_SOURCE_DIR}/src/api/helpers/text.cpp"
@@ -269,6 +290,8 @@ set (LIBLOOT_HEADERS "${CMAKE_SOURCE_DIR}/include/loot/api.h"
                       "${CMAKE_SOURCE_DIR}/src/api/sorting/plugin_sort.h"
                       "${CMAKE_SOURCE_DIR}/src/api/sorting/plugin_graph.h"
                       "${CMAKE_SOURCE_DIR}/src/api/sorting/plugin_sorting_data.h"
+                    #   "${CMAKE_SOURCE_DIR}/src/api/sorting/EdgeItem.h"
+                    #   "${CMAKE_SOURCE_DIR}/src/api/sorting/EdgeProvider.h"
                       "${CMAKE_SOURCE_DIR}/src/api/helpers/git_helper.h"
                       "${CMAKE_SOURCE_DIR}/src/api/helpers/collections.h"
                       "${CMAKE_SOURCE_DIR}/src/api/helpers/crc.h"
@@ -338,11 +361,17 @@ include_directories ("${CMAKE_SOURCE_DIR}/src"
 ##############################
 
 # Settings when compiling for Windows.
-IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+IF (SYSTEM_NAME MATCHES "Windows")
     add_definitions (-DUNICODE -D_UNICODE)
 ENDIF ()
 
-IF (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+IF(SYSTEM_NAME MATCHES "Darwin")
+    find_library(FoundationLib CoreFoundation)
+    find_library(SecurityLib Security)
+    find_library(ICONVLib iconv)
+    message("LIB: ${FoundationLib}")
+    set (LOOT_LIBS ${FoundationLib} ${SecurityLib} ${ICONVLib})
+ELSEIF (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH};.")
     set (CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 
@@ -414,7 +443,7 @@ target_link_libraries(loot ${LIBGIT2_LIBRARIES} ${ESPLUGIN_LIBRARIES} ${LIBLOADO
 # Set Target-Specific Flags
 ##############################
 
-IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+IF (SYSTEM_NAME MATCHES "Windows")
     set_target_properties (libloot_internals_tests PROPERTIES COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS} LOOT_STATIC")
     IF (BUILD_SHARED_LIBS)
         set_target_properties (loot PROPERTIES COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS} LOOT_EXPORT")
@@ -508,7 +537,7 @@ IF (NOT DEFINED CPACK_PACKAGE_VERSION)
     set(CPACK_PACKAGE_VERSION ${GIT_DESCRIBE_STRING})
 ENDIF()
 
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+if (SYSTEM_NAME MATCHES "Windows")
     set(CPACK_GENERATOR "7Z")
 else()
     set(CPACK_GENERATOR "TXZ")
