@@ -67,14 +67,14 @@ if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
     link_directories($ICU_LIBRARY_DIRS)
 endif()
 
-ExternalProject_Add(GTest
-                    PREFIX "external"
-                    URL "https://github.com/google/googletest/archive/release-1.8.1.tar.gz"
-                    CMAKE_ARGS -Dgtest_force_shared_crt=${MSVC_SHARED_RUNTIME} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                    INSTALL_COMMAND "")
-ExternalProject_Get_Property(GTest SOURCE_DIR BINARY_DIR)
-set (GTEST_INCLUDE_DIRS "${SOURCE_DIR}/googletest/include")
-set (GTEST_LIBRARIES "${BINARY_DIR}/googlemock/gtest/${CMAKE_CFG_INTDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
+# ExternalProject_Add(GTest
+#                     PREFIX "external"
+#                     URL "https://github.com/google/googletest/archive/release-1.8.1.tar.gz"
+#                     CMAKE_ARGS -Dgtest_force_shared_crt=${MSVC_SHARED_RUNTIME} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+#                     INSTALL_COMMAND "")
+# ExternalProject_Get_Property(GTest SOURCE_DIR BINARY_DIR)
+# set (GTEST_INCLUDE_DIRS "${SOURCE_DIR}/googletest/include")
+# set (GTEST_LIBRARIES "${BINARY_DIR}/googlemock/gtest/${CMAKE_CFG_INTDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
 ExternalProject_Add(esplugin
                     PREFIX "external"
@@ -137,20 +137,20 @@ ELSE ()
     set (LCI_LIBRARIES ${LCI_LIBRARIES} dl)
 ENDIF ()
 
-ExternalProject_Add(testing-metadata
-                    PREFIX "external"
-                    GIT_REPOSITORY "https://github.com/loot/testing-metadata"
-                    GIT_TAG "1.4.0"
-                    CONFIGURE_COMMAND ""
-                    BUILD_COMMAND ""
-                    INSTALL_COMMAND "")
+# ExternalProject_Add(testing-metadata
+#                     PREFIX "external"
+#                     GIT_REPOSITORY "https://github.com/loot/testing-metadata"
+#                     GIT_TAG "1.4.0"
+#                     CONFIGURE_COMMAND ""
+#                     BUILD_COMMAND ""
+#                     INSTALL_COMMAND "")
 
-ExternalProject_Add(testing-plugins
-                    PREFIX "external"
-                    URL "https://github.com/Ortham/testing-plugins/archive/1.4.1.tar.gz"
-                    CONFIGURE_COMMAND ""
-                    BUILD_COMMAND ""
-                    INSTALL_COMMAND "")
+# ExternalProject_Add(testing-plugins
+#                     PREFIX "external"
+#                     URL "https://github.com/Ortham/testing-plugins/archive/1.4.1.tar.gz"
+#                     CONFIGURE_COMMAND ""
+#                     BUILD_COMMAND ""
+#                     INSTALL_COMMAND "")
 
 ExternalProject_Add(spdlog
                     PREFIX "external"
@@ -396,9 +396,9 @@ ENDIF ()
 ##############################
 
 # Build tests.
-add_executable       (libloot_internals_tests ${LIBLOOT_SRC} ${LIBLOOT_HEADERS} ${LOOT_TESTS_SRC} ${LOOT_TESTS_HEADERS})
-add_dependencies     (libloot_internals_tests esplugin libgit2 libloadorder loot-condition-interpreter spdlog yaml-cpp GTest testing-metadata testing-plugins)
-target_link_libraries(libloot_internals_tests ${LIBGIT2_LIBRARIES} ${ESPLUGIN_LIBRARIES} ${LIBLOADORDER_LIBRARIES} ${LOOT_LIBS} ${LCI_LIBRARIES} ${YAML_CPP_LIBRARIES} ${GTEST_LIBRARIES} ${ICU_LIBRARIES})
+# add_executable       (libloot_internals_tests ${LIBLOOT_SRC} ${LIBLOOT_HEADERS} ${LOOT_TESTS_SRC} ${LOOT_TESTS_HEADERS})
+# add_dependencies     (libloot_internals_tests esplugin libgit2 libloadorder loot-condition-interpreter spdlog yaml-cpp GTest testing-metadata testing-plugins)
+# target_link_libraries(libloot_internals_tests ${LIBGIT2_LIBRARIES} ${ESPLUGIN_LIBRARIES} ${LIBLOADORDER_LIBRARIES} ${LOOT_LIBS} ${LCI_LIBRARIES} ${YAML_CPP_LIBRARIES} ${GTEST_LIBRARIES} ${ICU_LIBRARIES})
 
 # Build API.
 add_library          (loot ${LIBLOOT_SRC} ${LIBLOOT_HEADERS})
@@ -406,9 +406,9 @@ add_dependencies     (loot esplugin libgit2 libloadorder loot-condition-interpre
 target_link_libraries(loot ${LIBGIT2_LIBRARIES} ${ESPLUGIN_LIBRARIES} ${LIBLOADORDER_LIBRARIES} ${LOOT_LIBS} ${LCI_LIBRARIES} ${YAML_CPP_LIBRARIES} ${ICU_LIBRARIES})
 
 # Build API tests.
-add_executable       (libloot_tests ${LIBLOOT_TESTS_SRC} ${LIBLOOT_TESTS_HEADERS})
-add_dependencies     (libloot_tests loot GTest testing-metadata testing-plugins)
-target_link_libraries(libloot_tests loot ${GTEST_LIBRARIES})
+# add_executable       (libloot_tests ${LIBLOOT_TESTS_SRC} ${LIBLOOT_TESTS_HEADERS})
+# add_dependencies     (libloot_tests loot GTest testing-metadata testing-plugins)
+# target_link_libraries(libloot_tests loot ${GTEST_LIBRARIES})
 
 ##############################
 # Set Target-Specific Flags
@@ -429,47 +429,47 @@ ENDIF ()
 ##############################
 
 # Copy testing metadata
-ExternalProject_Get_Property(testing-metadata SOURCE_DIR)
-add_custom_command(TARGET libloot_internals_tests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SOURCE_DIR}
-        "$<TARGET_FILE_DIR:libloot_internals_tests>/testing-metadata")
-add_custom_command(TARGET libloot_tests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SOURCE_DIR}
-        "$<TARGET_FILE_DIR:libloot_tests>/testing-metadata")
+# ExternalProject_Get_Property(testing-metadata SOURCE_DIR)
+# add_custom_command(TARGET libloot_internals_tests POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#         ${SOURCE_DIR}
+#         "$<TARGET_FILE_DIR:libloot_internals_tests>/testing-metadata")
+# add_custom_command(TARGET libloot_tests POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#         ${SOURCE_DIR}
+#         "$<TARGET_FILE_DIR:libloot_tests>/testing-metadata")
 
-IF (GIT_FOUND)
-	# Clone a mirror of the testing-metadata repository for faster tests.
-    # Remove the directory if it already exists before cloning, as the clone
-    # will fail if the target directory exists and is not empty.
-	# Tests will fail if this is not done.
+# IF (GIT_FOUND)
+#     # Clone a mirror of the testing-metadata repository for faster tests.
+#     # Remove the directory if it already exists before cloning, as the clone
+#     # will fail if the target directory exists and is not empty.
+#     # Tests will fail if this is not done.
 
-	add_custom_command(TARGET libloot_internals_tests POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E remove_directory
-            "$<TARGET_FILE_DIR:libloot_internals_tests>/testing-metadata.git")
+#     add_custom_command(TARGET libloot_internals_tests POST_BUILD
+#         COMMAND ${CMAKE_COMMAND} -E remove_directory
+#             "$<TARGET_FILE_DIR:libloot_internals_tests>/testing-metadata.git")
 
-	add_custom_command(TARGET libloot_internals_tests POST_BUILD
-		COMMAND git clone --bare https://github.com/loot/testing-metadata.git "$<TARGET_FILE_DIR:libloot_internals_tests>/testing-metadata.git")
+#     add_custom_command(TARGET libloot_internals_tests POST_BUILD
+#         COMMAND git clone --bare https://github.com/loot/testing-metadata.git "$<TARGET_FILE_DIR:libloot_internals_tests>/testing-metadata.git")
 
-	add_custom_command(TARGET libloot_tests POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E remove_directory
-            "$<TARGET_FILE_DIR:libloot_tests>/testing-metadata.git")
+#     add_custom_command(TARGET libloot_tests POST_BUILD
+#         COMMAND ${CMAKE_COMMAND} -E remove_directory
+#             "$<TARGET_FILE_DIR:libloot_tests>/testing-metadata.git")
 
-	add_custom_command(TARGET libloot_tests POST_BUILD
-		COMMAND git clone --bare https://github.com/loot/testing-metadata.git "$<TARGET_FILE_DIR:libloot_tests>/testing-metadata.git")
-ENDIF()
+#     add_custom_command(TARGET libloot_tests POST_BUILD
+#         COMMAND git clone --bare https://github.com/loot/testing-metadata.git "$<TARGET_FILE_DIR:libloot_tests>/testing-metadata.git")
+# ENDIF()
 
 # Copy testing plugins
-ExternalProject_Get_Property(testing-plugins SOURCE_DIR)
-add_custom_command(TARGET libloot_internals_tests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SOURCE_DIR}
-        $<TARGET_FILE_DIR:libloot_internals_tests>)
-add_custom_command(TARGET libloot_tests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SOURCE_DIR}
-      $<TARGET_FILE_DIR:libloot_tests>)
+# ExternalProject_Get_Property(testing-plugins SOURCE_DIR)
+# add_custom_command(TARGET libloot_internals_tests POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#         ${SOURCE_DIR}
+#         $<TARGET_FILE_DIR:libloot_internals_tests>)
+# add_custom_command(TARGET libloot_tests POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#         ${SOURCE_DIR}
+#       $<TARGET_FILE_DIR:libloot_tests>)
 
 ########################################
 # Install
