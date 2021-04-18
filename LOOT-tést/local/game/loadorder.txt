@@ -1,0 +1,11 @@
+Skyrim.esm
+Blank.esm
+Blank - Different.esm
+Blank - Master Dependent.esm
+Blank - Different Master Dependent.esm
+Blank.esp
+Blank - Different.esp
+Blank - Master Dependent.esp
+Blank - Different Master Dependent.esp
+Blank - Plugin Dependent.esp
+Blank - Different Plugin Dependent.esp
