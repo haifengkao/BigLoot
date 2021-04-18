@@ -72,6 +72,9 @@ LOOT_API bool IsCompatible(const unsigned int versionMajor,
     return versionMinor == loot::LootVersion::minor;
 }
 
+/// GameType: enum, e.g. fo3, tes4, tes5
+/// gamePath: the game directory which contains "Data" folder
+/// gameLocalPath: the directory which contains loadorder.txt, plugin.txt
 LOOT_API std::shared_ptr<GameInterface> CreateGameHandle(
     const GameType game,
     const std::filesystem::path& gamePath,
