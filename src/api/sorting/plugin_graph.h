@@ -39,6 +39,8 @@
 #include "api/sorting/plugin_sorting_data.h"
 #include "loot/exception/cyclic_interaction_error.h"
 
+#include "EdgeItem.h"
+
 namespace loot {
 typedef boost::adjacency_list<boost::listS,
                               boost::listS,
@@ -91,6 +93,8 @@ public:
   void AddTieBreakEdges();
 
   std::vector<std::string> TopologicalSort() const;
+
+  EdgeItems GetSpecificEdges();
 
 private:
   std::optional<vertex_t> GetVertexByName(const std::string& name) const;

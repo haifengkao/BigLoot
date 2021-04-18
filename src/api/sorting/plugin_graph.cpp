@@ -24,13 +24,12 @@
 
 #include "plugin_graph.h"
 
-#include <cstdlib>
-#include <queue>
-
 #include <boost/algorithm/string.hpp>
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/graph/topological_sort.hpp>
+#include <cstdlib>
+#include <queue>
 
 #include "api/game/game.h"
 #include "api/helpers/logging.h"
@@ -478,6 +477,64 @@ void PluginGraph::AddSpecificEdges() {
       }
     }
   }
+}
+
+EdgeItems PluginGraph::GetSpecificEdges() {
+  EdgeItems result;
+  // Add edges for all relationships that aren't overlaps.
+  vertex_it vit, vitend;
+  for (tie(vit, vitend) = boost::vertices(graph_); vit != vitend; ++vit) {
+    for (vertex_it vit2 = vit; vit2 != vitend; ++vit2) {
+      if (graph_[*vit].IsMaster() == graph_[*vit2].IsMaster())
+        continue;
+
+      vertex_t vertex, parentVertex;
+      if (graph_[*vit2].IsMaster()) {
+        parentVertex = *vit2;
+        vertex = *vit;
+      } else {
+        parentVertex = *vit;
+        vertex = *vit2;
+      }
+
+      result.push_back(
+          EdgeItem(graph_[parentVertex].GetName(), graph_[vertex].GetName(), EdgeType::masterFlag));
+    }
+
+    for (const auto& master : graph_[*vit].GetMasters()) {
+      auto parentVertex = GetVertexByName(master);
+      if (parentVertex.has_value()) {
+        AddEdge(parentVertex.value(), *vit, EdgeType::master);
+      }
+    }
+
+    for (const auto& file : graph_[*vit].GetMasterlistRequirements()) {
+      auto parentVertex = GetVertexByName(std::string(file.GetName()));
+      if (parentVertex.has_value()) {
+        AddEdge(parentVertex.value(), *vit, EdgeType::masterlistRequirement);
+      }
+    }
+    for (const auto& file : graph_[*vit].GetUserRequirements()) {
+      auto parentVertex = GetVertexByName(std::string(file.GetName()));
+      if (parentVertex.has_value()) {
+        AddEdge(parentVertex.value(), *vit, EdgeType::userRequirement);
+      }
+    }
+
+    for (const auto& file : graph_[*vit].GetMasterlistLoadAfterFiles()) {
+      auto parentVertex = GetVertexByName(std::string(file.GetName()));
+      if (parentVertex.has_value()) {
+        AddEdge(parentVertex.value(), *vit, EdgeType::masterlistLoadAfter);
+      }
+    }
+    for (const auto& file : graph_[*vit].GetUserLoadAfterFiles()) {
+      auto parentVertex = GetVertexByName(std::string(file.GetName()));
+      if (parentVertex.has_value()) {
+        AddEdge(parentVertex.value(), *vit, EdgeType::userLoadAfter);
+      }
+    }
+  }
+  return result;
 }
 
 bool shouldIgnorePlugin(
