@@ -1,6 +1,8 @@
 #pragma once
 
 #include "EdgeItem.h"
+#include <vector>
+#include <string>
 #include <api/sorting/plugin_graph.h>
 
 namespace loot {

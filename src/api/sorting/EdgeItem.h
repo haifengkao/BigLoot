@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include "loot/api_decorator.h"
 #include "loot/enum/edge_type.h"
 namespace loot {
