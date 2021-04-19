@@ -29,6 +29,7 @@
 
 #include <map>
 
+#include "api/sorting/plugin_graph.h"
 #include <spdlog/spdlog.h>
 #include <boost/container_hash/hash.hpp>
 #include <boost/graph/adjacency_list.hpp>
