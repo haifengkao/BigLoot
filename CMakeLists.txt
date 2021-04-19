@@ -1,9 +1,14 @@
 cmake_minimum_required (VERSION 2.8.12.1)
 cmake_policy(SET CMP0015 NEW)
+cmake_policy(SET CMP0114 NEW)
 project (BigLoot)
 include(ExternalProject)
 
-set (Active_Scheme release)
+# options(case sesitive): release, debug
+# TODO: if you choose release, Xcode will not find libgtest.a
+# it seems that the libgtestd.a or libgtest.a depends on Xcode active scheme
+# using makefile build may work?
+set (Active_Scheme debug)
 
 option(BUILD_SHARED_LIBS "Build a shared library" ON)
 option(MSVC_STATIC_RUNTIME "Build with static runtime libs (/MT)" OFF)
@@ -59,21 +64,29 @@ IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
     ENDIF ()
     set(USE_BUNDLED_ZLIB )
     set(SYSTEM_NAME "Windows")
+    set(FIND_CARGO_OSX_WORKAROUND )
 ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     set(RUST_TARGET x86_64-apple-darwin)
     set(USE_BUNDLED_ZLIB -DUSE_BUNDLED_ZLIB=ON) # I cannot find zlib on mac osx
     set(SYSTEM_NAME "Darwin")
+
+    # assume rust Cargo is installed at ~/.cargo/bin
+    # assume cc is installed at /usr/bin
+    set(FIND_CARGO_OSX_WORKAROUND export PATH=/usr/bin:/usr/local/bin:$ENV{HOME}/.cargo/bin && )
 ELSE ()
     set(RUST_TARGET x86_64-unknown-linux-gnu)
     set(USE_BUNDLED_ZLIB )
     set(SYSTEM_NAME "Other")
+    set(FIND_CARGO_OSX_WORKAROUND )
 ENDIF ()
 
 find_package(Boost REQUIRED)
 IF (Active_Scheme MATCHES "debug")
-    set(Rust_Scheme "") # default cargo build command is debug
+    set(Rust_Scheme ) # default cargo build command is debug
+    set(GTest_STATIC_LIBRARY_SUFFIX d) #libgtestd.a'
 ELSE ()
-    set(Rust_Scheme "--release")
+    set(Rust_Scheme --release)
+    set(GTest_STATIC_LIBRARY_SUFFIX) # libgtest.a'
 ENDIF ()
 
 if (SYSTEM_NAME MATCHES "Other")
@@ -89,14 +102,14 @@ ExternalProject_Add(GTest
                     INSTALL_COMMAND "")
 ExternalProject_Get_Property(GTest SOURCE_DIR BINARY_DIR)
 set (GTEST_INCLUDE_DIRS "${SOURCE_DIR}/googletest/include")
-set (GTEST_LIBRARIES "${BINARY_DIR}/googlemock/gtest/${CMAKE_CFG_INTDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
+set (GTEST_LIBRARIES "${BINARY_DIR}/googlemock/gtest/${CMAKE_CFG_INTDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${GTest_STATIC_LIBRARY_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
 ExternalProject_Add(esplugin
                     PREFIX "external"
                     URL "https://github.com/Ortham/esplugin/archive/3.3.1.tar.gz"
                     CONFIGURE_COMMAND ""
                     BUILD_IN_SOURCE 1
-                    BUILD_COMMAND cargo build --${Rust_Scheme} --manifest-path ffi/Cargo.toml --target ${RUST_TARGET} &&
+                    BUILD_COMMAND ${FIND_CARGO_OSX_WORKAROUND} cargo build ${Rust_Scheme} --manifest-path ffi/Cargo.toml --target ${RUST_TARGET} &&
                         cbindgen ffi/ -o ffi/include/esplugin.hpp
                     INSTALL_COMMAND "")
 ExternalProject_Get_Property(esplugin SOURCE_DIR)
@@ -123,7 +136,7 @@ ExternalProject_Add(libloadorder
                     URL "https://github.com/Ortham/libloadorder/archive/12.0.1.tar.gz"
                     CONFIGURE_COMMAND ""
                     BUILD_IN_SOURCE 1
-                    BUILD_COMMAND cargo build --release --manifest-path ffi/Cargo.toml --target ${RUST_TARGET} &&
+                    BUILD_COMMAND ${FIND_CARGO_OSX_WORKAROUND} cargo build --release --manifest-path ffi/Cargo.toml --target ${RUST_TARGET} &&
                         cbindgen ffi/ -l c++ -o ffi/include/libloadorder.hpp
                     INSTALL_COMMAND "")
 ExternalProject_Get_Property(libloadorder SOURCE_DIR)
@@ -140,7 +153,7 @@ ExternalProject_Add(loot-condition-interpreter
                     URL "https://github.com/loot/loot-condition-interpreter/archive/2.1.2.tar.gz"
                     CONFIGURE_COMMAND ""
                     BUILD_IN_SOURCE 1
-                    BUILD_COMMAND cargo build --release --manifest-path ffi/Cargo.toml --target ${RUST_TARGET} &&
+                    BUILD_COMMAND ${FIND_CARGO_OSX_WORKAROUND} cargo build --release --manifest-path ffi/Cargo.toml --target ${RUST_TARGET} &&
                         cbindgen ffi/ -o ffi/include/loot_condition_interpreter.h
                     INSTALL_COMMAND "")
 ExternalProject_Get_Property(loot-condition-interpreter SOURCE_DIR)
@@ -553,3 +566,20 @@ endif()
 set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/package")
 
 include(CPack)
+
+message(WARNING, =====hi msvc: ${MSVC}\n,
+        compiler: ${CMAKE_COMPILER_IS_GNUXX}\n,
+        system: ${SYSTEM_NAME}\n,
+        config: ${CONFIGURATION}\n,
+        platform: ${EFFECTIVE_PLATFORM_NAME}\n,
+        configdir: ${CMAKE_CFG_INTDIR}\n,
+        lootlib: ${LOOT_LIBS}\n,
+        link: ${LOOT_LINK_FLAGS}\n,
+        boost: ${Boost_LIBRARIES}\n,
+        lib: ${LIBLOOT_LINK_LIBRARY}\n,
+        libs: ${LIBLOOT_EXTRACTED_PATH}/${LIBLOOT_SHARED_LIBRARY}\n,
+        libt: "$<TARGET_FILE_DIR:LOOT>/${LIBLOOT_SHARED_LIBRARY}"\n,
+        gui: ${LOOT_GUI_LIBS}\n,
+        wrapper: ${CEF_LIBCEF_DLL_WRAPPER_PATH}\n,
+        ceftarget: ${CEF_TARGET}\n
+        )
