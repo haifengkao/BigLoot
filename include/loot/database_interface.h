@@ -233,13 +233,13 @@ public:
   /**
    * @brief Set the groups
 
-  /**
+  **
    *  @}
    *  @name Plugin Data Access
    *  @{
-   */
+   *
 
-  /**
+   **
    *  @brief Get all a plugin's loaded metadata.
    *  @param plugin
    *         The filename of the plugin to look up metadata for.
